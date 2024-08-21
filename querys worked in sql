@@ -1,0 +1,40 @@
+select *from order_table;
+
+#find top 10 highest revenue(sales) generating products
+select product_id,sum(selling_price) as sales from order_table group by product_id order by sum(selling_price) desc limit 10;
+
+#find top 5 highest selling products in each region
+WITH cte AS (
+    SELECT 
+        product_id, 
+        region, 
+        SUM(selling_price) AS sales,
+        ROW_NUMBER() OVER (PARTITION BY region ORDER BY SUM(selling_price) DESC) AS rn
+    FROM 
+        order_table 
+    GROUP BY 
+        product_id, 
+        region
+)
+SELECT 
+    product_id, 
+    region, 
+    sales 
+FROM 
+    cte 
+WHERE 
+    rn <= 5;
+
+
+#find month over month growth comparision for 2022 and 2023
+with cte as (select year(order_date) as year_,month(order_date) as month_,sum(selling_price) as sales 
+from order_table group by year(order_date),month(order_date) 
+order by month(order_date)
+)
+select month_,
+sum(case when year_=2022 then sales else 0 end) as year_2022_sales,
+sum(case when year_=2023 then sales else 0 end) as year_2023_sales, SUM(CASE WHEN year_ = 2023 THEN sales ELSE 0 END) - SUM(CASE WHEN year_ = 2022 THEN sales ELSE 0 END) AS difference 
+from cte group by month_;
+
+#for each category which month which has highest sales
+select year(order_date),month(order_date),category,sum(selling_price) from order_table group by year(order_date),month(order_date),category order by sum(selling_price) desc limit 1;
